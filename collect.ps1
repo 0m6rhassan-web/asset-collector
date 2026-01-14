@@ -1,31 +1,6 @@
 $HOOK=$env:HOOK
 if(!$HOOK){exit}
 
-$S=(Get-CimInstance Win32_BIOS).SerialNumber.Trim()
-$M=(Get-CimInstance Win32_ComputerSystem).Model.Trim()
-
-$CF=(Get-CimInstance Win32_Processor).Name.Trim()
-$C=[regex]::Match($CF,'(?i)(?:[i][3579]-\d{4}\w?)|(?:Ryzen\s\d\s\d{4}\w?)|(?:\d{4}\w{1,2})').Value
-if(!$C){$C=$CF}
-
-$R=(Get-CimInstance Win32_PhysicalMemory | % {[math]::Round($_.Capacity/1GB)}) -join '+'
-
-# الهاردسك - حجم الأقسام فقط
-try{
-    $SSD=(Get-CimInstance Win32_DiskDrive | ?{$_.InterfaceType -ne 'USB'} | % {[math]::Round($_.Size/1GB)}) -join '+'
-}catch{$SSD='N/A'}
-
-# GPU
-$V=(Get-CimInstance Win32_VideoController | ?{$_.Name -notmatch 'Intel'} | % Name) -join ' / '
-if(!$V){$V=(Get-CimInstance Win32_VideoController)[0].Name}
-
-# البطارية – Health % أو EstimatedChargeRemaining أو N/A
-try{
-$b=Get-WmiObject -Namespace root/WMI -Class BatteryFullChargedCapacity
-$d=Get-WmiObject -Namespace root/WMI -Class BatteryStaticData
-if($b -and $d){$H='{0}%' -f([math]::Round(($b.FullChargedCapacity/$d.DesignedCapacity)*100))}else{$H='N/A'}
-}catch{$H='N/A'}
-
-
-# إرسال النتائج للـ webhook
-"$S,$M,$C,$R,$SSD,$V,$H" | Invoke-RestMethod -Uri $HOOK -Method Post -ContentType "text/plain"
+$Battery = Get-CimInstance -ClassName Win32_Battery; 
+$Health = ($Battery.FullChargeCapacity / $Battery.DesignCapacity) * 100; 
+Write-Host "Battery Health: [$( [Math]::Round($Health, 2) )%]"
