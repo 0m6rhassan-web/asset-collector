@@ -20,10 +20,10 @@ $V=(Get-CimInstance Win32_VideoController | ?{$_.Name -notmatch 'Intel'} | % Nam
 if(!$V){$V=(Get-CimInstance Win32_VideoController)[0].Name}
 
 # البطارية – Health % أو EstimatedChargeRemaining أو N/A
-try {
-    $bat=Get-WmiObject -Namespace root/WMI -Class BatteryFullChargedCapacity
-    $des=Get-WmiObject -Namespace root/WMI -Class BatteryStaticData
-    if($bat -and $des){$H='{0}%' -f([math]::Round(($bat.FullChargedCapacity/$des.DesignedCapacity)*100))}else{$H='N/A'}
+try{
+$b=Get-WmiObject -Namespace root/WMI -Class BatteryFullChargedCapacity
+$d=Get-WmiObject -Namespace root/WMI -Class BatteryStaticData
+if($b -and $d){$H='{0}%' -f([math]::Round(($b.FullChargedCapacity/$d.DesignedCapacity)*100))}else{$H='N/A'}
 }catch{$H='N/A'}
 
 
