@@ -1,4 +1,3 @@
-# Get Webhook URL from environment variable
 $HOOK=$env:HOOK
 if(!$HOOK){exit}
 
