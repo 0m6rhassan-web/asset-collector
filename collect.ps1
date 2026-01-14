@@ -20,22 +20,12 @@ $V=(Get-CimInstance Win32_VideoController | ?{$_.Name -notmatch 'Intel'} | % Nam
 if(!$V){$V=(Get-CimInstance Win32_VideoController)[0].Name}
 
 # البطارية – Health % أو EstimatedChargeRemaining أو N/A
-try {
-    $bat=Get-WmiObject -Namespace root/WMI -Class BatteryFullChargedCapacity -ErrorAction SilentlyContinue
-    $des=Get-WmiObject -Namespace root/WMI -Class BatteryStaticData -ErrorAction SilentlyContinue
-    if($bat -and $des) {
-        $H = '{0}%' -f ([math]::Round(($bat[0].FullChargedCapacity / $des[0].DesignedCapacity)*100))
-    } else {
-        $b2=Get-CimInstance Win32_Battery -ErrorAction SilentlyContinue
-        if($b2) {
-            $H = ($b2[0].EstimatedChargeRemaining) + '%'
-        } else {
-            $H = 'N/A'
-        }
-    }
-} catch {
-    $H='N/A'
-}
+ttry {
+    $bat=Get-WmiObject -Namespace root/WMI -Class BatteryFullChargedCapacity
+    $des=Get-WmiObject -Namespace root/WMI -Class BatteryStaticData
+    if($bat -and $des){$H='{0}%' -f([math]::Round(($bat.FullChargedCapacity/$des.DesignedCapacity)*100))}else{$H='N/A'}
+}catch{$H='N/A'}
+
 
 # إرسال النتائج للـ webhook
 "$S,$M,$C,$R,$SSD,$V,$H" | Invoke-RestMethod -Uri $HOOK -Method Post -ContentType "text/plain"
