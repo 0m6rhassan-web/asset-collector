@@ -10,7 +10,7 @@ if(!$C){$C=$CF}
 
 $R=(Get-CimInstance Win32_PhysicalMemory | % {[math]::Round($_.Capacity/1GB)}) -join '+'
 
-# حجم الأقسام فقط بالجيجابايت
+# هنا ناخد **حجم كل قسم فقط بالجيجابايت**، بدون أي DeviceID
 try {
     $SSD=(Get-CimInstance Win32_LogicalDisk -Filter "DriveType=3" |
         ForEach-Object { [math]::Round($_.Size/1GB) }
@@ -32,5 +32,6 @@ try{
     }
 }catch{$H='N/A'}
 
+# إرسال النتائج
 "$S,$M,$C,$R,$SSD,$V,$H" |
 Invoke-RestMethod -Uri $HOOK -Method Post -ContentType "text/plain"
