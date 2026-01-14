@@ -10,21 +10,32 @@ if(!$C){$C=$CF}
 
 $R=(Get-CimInstance Win32_PhysicalMemory | % {[math]::Round($_.Capacity/1GB)}) -join '+'
 
+# الهاردسك - حجم الأقسام فقط
 try{
-    $SSD=(Get-CimInstance Win32_DiskDrive |
-        ?{$_.InterfaceType -ne 'USB'} |
-        % {[math]::Round($_.Size/1GB)}
-    ) -join '+'
+    $SSD=(Get-CimInstance Win32_DiskDrive | ?{$_.InterfaceType -ne 'USB'} | % {[math]::Round($_.Size/1GB)}) -join '+'
 }catch{$SSD='N/A'}
 
+# GPU
 $V=(Get-CimInstance Win32_VideoController | ?{$_.Name -notmatch 'Intel'} | % Name) -join ' / '
 if(!$V){$V=(Get-CimInstance Win32_VideoController)[0].Name}
 
-# بطارية – الطريقة المضمونة
-try{
-    $b=Get-CimInstance Win32_Battery -ErrorAction SilentlyContinue
-    if($b){$H=$b[0].EstimatedChargeRemaining+'%'}else{$H='N/A'}
-}catch{$H='N/A'}
+# البطارية – Health % أو EstimatedChargeRemaining أو N/A
+try {
+    $bat=Get-WmiObject -Namespace root/WMI -Class BatteryFullChargedCapacity -ErrorAction SilentlyContinue
+    $des=Get-WmiObject -Namespace root/WMI -Class BatteryStaticData -ErrorAction SilentlyContinue
+    if($bat -and $des) {
+        $H = '{0}%' -f ([math]::Round(($bat[0].FullChargedCapacity / $des[0].DesignedCapacity)*100))
+    } else {
+        $b2=Get-CimInstance Win32_Battery -ErrorAction SilentlyContinue
+        if($b2) {
+            $H = ($b2[0].EstimatedChargeRemaining) + '%'
+        } else {
+            $H = 'N/A'
+        }
+    }
+} catch {
+    $H='N/A'
+}
 
-"$S,$M,$C,$R,$SSD,$V,$H" |
-Invoke-RestMethod -Uri $HOOK -Method Post -ContentType "text/plain"
+# إرسال النتائج للـ webhook
+"$S,$M,$C,$R,$SSD,$V,$H" | Invoke-RestMethod -Uri $HOOK -Method Post -ContentType "text/plain"
